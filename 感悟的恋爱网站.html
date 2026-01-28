@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>心动邂逅 - 全功能恋爱平台</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        /* 全局入场动画：淡入+上移，丝滑无卡顿 */
+        .page-enter {
+            animation: pageEnter 1.2s ease-in-out forwards;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        @keyframes pageEnter {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 板块进场动画：淡入+轻微缩放 */
+        .module-enter {
+            animation: moduleEnter 0.8s ease-out forwards;
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        @keyframes moduleEnter {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* 延迟进场，实现板块依次显示 */
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+        .delay-500 { animation-delay: 0.5s; }
+        .delay-600 { animation-delay: 0.6s; }
+
+        /* 私密空间火花动效 */
+        .sparkle {
+            animation: sparkle 1.5s infinite alternate;
+        }
+
+        @keyframes sparkle {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.3); }
+        }
+
+        /* 隐藏元素（页面切换） */
+        .hidden-page {
+            display: none;
+        }
+
+        /* 移动端底部导航（仅手机端显示） */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* 内容避开底部导航 */
+        .content-padding {
+            padding-bottom: 80px;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ff6b8b;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        /* 头像裁剪容器 */
+        .avatar-crop {
+            clip-path: circle(50% at 50% 50%);
+            overflow: hidden;
+        }
+
+        /* 按钮点击反馈 */
+        .btn-click {
+            transition: all 0.2s ease;
+        }
+
+        .btn-click:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+    </style>
+    <!-- Tailwind 自定义配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        love: {
+                            pink: '#ff6b8b',
+                            red: '#ff385c',
+                            purple: '#a855f7',
+                            blue: '#3b82f6',
+                            cyan: '#06b6d4',
+                            yellow: '#f59e0b',
+                            gray: '#6b7280'
+                        }
+                    },
+                    fontFamily: {
+                        sweet: ['Microsoft YaHei', 'PingFang SC', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 2px 12px 0 rgba(255,107,139,0.1)',
+                        'btn': '0 4px 6px -1px rgba(255,107,139,0.2)'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sweet bg-gray-50 min-h-screen text-gray-800">
+    <!-- 全局容器（全局入场动画） -->
+    <div id="app" class="page-enter">
+        <!-- ====================================== 1. 登录页面（默认） ====================================== -->
+        <div id="login-page" class="min-h-screen flex flex-col items-center justify-center px-4 content-padding bg-gradient-to-b from-love-pink/5 to-white">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-card p-6 sm:p-8 module-enter">
+                <h1 class="text-2xl sm:text-3xl font-bold text-love-pink text-center mb-8">
+                    <i class="fas fa-heart pulse mr-2"></i> 心动邂逅
+                </h1>
+
+                <!-- 登录表单（带实时校验） -->
+                <form id="login-form" class="space-y-5 module-enter delay-100">
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="login-username">网名</label>
+                        <input type="text" id="login-username" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-pink/50 focus:border-love-pink transition-all" placeholder="请输入你的网名" required>
+                        <p id="login-username-tip" class="text-xs text-red-500 hidden">请填写已注册的网名</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="login-realname">真实姓名</label>
+                        <input type="text" id="login-realname" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-pink/50 focus:border-love-pink transition-all" placeholder="请输入注册时的真实姓名" required>
+                        <p id="login-realname-tip" class="text-xs text-red-500 hidden">真实姓名与注册信息不符</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="login-password">密码</label>
+                        <input type="password" id="login-password" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-pink/50 focus:border-love-pink transition-all" placeholder="请输入你的密码" required>
+                        <p id="login-password-tip" class="text-xs text-red-500 hidden">密码长度不少于6位/密码错误</p>
+                    </div>
+                    <button type="submit" class="w-full bg-love-pink text-white py-3 rounded-lg hover:bg-love-red transition-all duration-300 font-medium shadow-btn btn-click">
+                        立即登录
+                    </button>
+                </form>
+
+                <!-- 注册跳转 -->
+                <div class="mt-8 text-center module-enter delay-200">
+                    <p class="text-gray-600">还没有账号？ <a href="javascript:void(0)" id="to-register" class="text-love-pink hover:underline font-medium">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 2. 注册页面 ====================================== -->
+        <div id="register-page" class="hidden-page min-h-screen flex flex-col items-center justify-center px-4 content-padding bg-gradient-to-b from-love-purple/5 to-white">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-card p-6 sm:p-8 module-enter">
+                <h1 class="text-2xl sm:text-3xl font-bold text-love-purple text-center mb-6">
+                    <i class="fas fa-user-plus mr-2"></i> 注册账号
+                </h1>
+
+                <!-- 注册表单（全功能可用，带校验） -->
+                <form id="register-form" class="space-y-4 module-enter delay-100">
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium">性别 <span class="text-red-500">*</span></label>
+                        <div class="flex gap-6 sm:gap-8">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="male" class="mr-2 accent-love-pink" required>
+                                <span>男</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="female" class="mr-2 accent-love-pink">
+                                <span>女</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="gender" value="other" class="mr-2 accent-love-pink">
+                                <span>其他</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="register-username">网名（可修改） <span class="text-red-500">*</span></label>
+                        <input type="text" id="register-username" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" placeholder="请设置你的专属网名" required>
+                        <p id="register-username-tip" class="text-xs text-red-500 hidden">网名不能为空（2-10个字符）</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="register-realname">真实姓名（永久不可改） <span class="text-red-500">*</span></label>
+                        <input type="text" id="register-realname" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" placeholder="请填写真实姓名，提交后不可修改" required>
+                        <p id="register-realname-tip" class="text-xs text-red-500 hidden">真实姓名不能为空</p>
+                        <p class="text-xs text-gray-500 mt-1">⚠️ 提示：真实姓名提交后永久不可修改，请谨慎填写</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="register-password">密码 <span class="text-red-500">*</span></label>
+                        <input type="password" id="register-password" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" placeholder="请设置6-16位密码" required>
+                        <p id="register-password-tip" class="text-xs text-red-500 hidden">密码长度需在6-16位之间</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-gray-700 font-medium" for="register-code">6位验证凭证 <span class="text-red-500">*</span></label>
+                        <input type="text" id="register-code" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" readonly placeholder="点击下方按钮生成验证凭证">
+                        <button type="button" id="generate-code" class="w-full mt-2 bg-love-purple text-white py-2 rounded-lg hover:bg-purple-700 transition-all duration-300 font-medium btn-click">
+                            <i class="fas fa-random mr-1"></i> 生成随机验证凭证
+                        </button>
+                        <p class="text-xs text-gray-500">💡 提示：验证凭证将发送至开发者，用于审核注册</p>
+                    </div>
+                    <button type="submit" class="w-full bg-love-purple text-white py-3 rounded-lg hover:bg-purple-700 transition-all duration-300 font-medium shadow-btn btn-click">
+                        提交注册申请
+                    </button>
+                </form>
+
+                <!-- 登录跳转 -->
+                <div class="mt-6 text-center module-enter delay-200">
+                    <p class="text-gray-600">已有账号？ <a href="javascript:void(0)" id="to-login" class="text-love-purple hover:underline font-medium">立即登录</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 3. 开发者模式页面（ganwu521专属，全功能可用） ====================================== -->
+        <div id="dev-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（平板/电脑显示） -->
+            <nav class="bg-love-red text-white py-3 px-4 lg:px-8 module-enter hidden sm:flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <h2 class="text-xl lg:text-2xl font-bold">
+                    <i class="fas fa-crown mr-2"></i> 开发者模式 - 感悟专属
+                </h2>
+                <div class="flex gap-3 lg:gap-4">
+                    <button id="dev-audit-btn" class="hover:bg-love-pink px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">审核注册</button>
+                    <button id="dev-member-btn" class="hover:bg-love-pink px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">成员管理</button>
+                    <button id="dev-file-btn" class="hover:bg-love-pink px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">文件上传</button>
+                    <button id="dev-board-btn" class="hover:bg-love-pink px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">留言管理</button>
+                    <button id="dev-logout-btn" class="hover:bg-love-pink px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">退出登录</button>
+                </div>
+            </nav>
+
+            <!-- 开发者核心功能区（三端适配） -->
+            <div class="container mx-auto px-4 py-6 lg:py-8">
+                <!-- 审核注册面板（默认显示） -->
+                <div id="dev-audit-panel" class="module-enter">
+                    <h3 class="text-lg lg:text-xl font-bold text-love-red mb-6 flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i> 注册申请审核
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 mb-6">
+                        <div class="mb-4 flex justify-between items-center">
+                            <p class="text-gray-600"><i class="fas fa-bell text-love-red mr-1"></i> 待审核申请：<span id="dev-audit-count" class="text-love-red font-bold">0</span>条</p>
+                            <button id="dev-refresh-audit" class="text-love-blue hover:underline text-sm btn-click">
+                                <i class="fas fa-sync-alt mr-1"></i> 刷新
+                            </button>
+                        </div>
+                        <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2" id="dev-audit-list">
+                            <!-- 审核列表由JS动态生成 -->
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-inbox text-3xl mb-2"></i>
+                                <p>暂无待审核的注册申请</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成员管理面板（默认隐藏） -->
+                <div id="dev-member-panel" class="hidden module-enter delay-100">
+                    <h3 class="text-lg lg:text-xl font-bold text-love-red mb-6 flex items-center">
+                        <i class="fas fa-users mr-2"></i> 全站成员管理
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 mb-6">
+                        <div class="mb-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                            <div class="relative w-full sm:w-auto sm:flex-1">
+                                <input type="text" id="dev-member-search" class="w-full px-4 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-red/50 focus:border-love-red transition-all" placeholder="搜索网名/真实姓名">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            </div>
+                            <p class="text-gray-600"><i class="fas fa-user text-love-pink mr-1"></i> 全站成员：<span id="dev-member-count" class="text-love-pink font-bold">0</span>人</p>
+                        </div>
+                        <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2" id="dev-member-list">
+                            <!-- 成员列表由JS动态生成 -->
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-user-friends text-3xl mb-2"></i>
+                                <p>暂无注册成员</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 文件上传面板（默认隐藏） -->
+                <div id="dev-file-panel" class="hidden module-enter delay-100">
+                    <h3 class="text-lg lg:text-xl font-bold text-love-red mb-6 flex items-center">
+                        <i class="fas fa-upload mr-2"></i> 系统文件上传
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 mb-6">
+                        <div class="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center mb-6 hover:border-love-blue transition-all cursor-pointer" id="dev-file-upload-area">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-love-blue mb-3"></i>
+                            <p class="text-gray-600 mb-2">点击或拖拽文件到此处上传</p>
+                            <p class="text-xs text-gray-400">支持JPG/PNG/GIF/MP4，单文件最大50MB</p>
+                            <input type="file" class="hidden" id="dev-file-input" multiple accept="image/*,video/mp4">
+                        </div>
+                        <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2" id="dev-file-list">
+                            <!-- 文件列表由JS动态生成 -->
+                            <div class="text-center text-gray-500 py-6">
+                                <i class="fas fa-file text-3xl mb-2"></i>
+                                <p>暂无上传文件</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 留言管理面板（默认隐藏） -->
+                <div id="dev-board-panel" class="hidden module-enter delay-100">
+                    <h3 class="text-lg lg:text-xl font-bold text-love-red mb-6 flex items-center">
+                        <i class="fas fa-comment-dots mr-2"></i> 全站留言板管理
+                    </h3>
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 mb-6">
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">发布官方公告/留言</label>
+                            <textarea id="dev-board-content" class="w-full h-24 lg:h-32 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-red/50 focus:border-love-red transition-all resize-none" placeholder="输入官方留言内容..."></textarea>
+                            <div class="flex gap-3 mt-3">
+                                <button id="dev-board-publish" class="bg-love-red text-white px-4 py-2 rounded-lg hover:bg-love-pink transition-all btn-click">
+                                    <i class="fas fa-paper-plane mr-1"></i> 发布
+                                </button>
+                                <button id="dev-board-clear" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-all btn-click">
+                                    <i class="fas fa-trash mr-1"></i> 清空全站留言
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-4 max-h-[50vh] overflow-y-auto pr-2" id="dev-board-list">
+                            <!-- 留言列表由JS动态生成 -->
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-comments text-3xl mb-2"></i>
+                                <p>全站暂无留言</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 移动端底部导航（仅手机端显示） -->
+            <div class="mobile-nav bg-white shadow-lg py-3 px-4 border-t border-gray-100 sm:hidden module-enter">
+                <div class="flex justify-around items-center">
+                    <button id="dev-audit-mobile" class="flex flex-col items-center text-love-red btn-click">
+                        <i class="fas fa-check-circle text-lg"></i>
+                        <span class="text-xs mt-1">审核</span>
+                    </button>
+                    <button id="dev-member-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-red transition-all btn-click">
+                        <i class="fas fa-users text-lg"></i>
+                        <span class="text-xs mt-1">成员</span>
+                    </button>
+                    <button id="dev-file-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-red transition-all btn-click">
+                        <i class="fas fa-upload text-lg"></i>
+                        <span class="text-xs mt-1">上传</span>
+                    </button>
+                    <button id="dev-board-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-red transition-all btn-click">
+                        <i class="fas fa-comment text-lg"></i>
+                        <span class="text-xs mt-1">留言</span>
+                    </button>
+                    <button id="dev-logout-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-red transition-all btn-click">
+                        <i class="fas fa-sign-out-alt text-lg"></i>
+                        <span class="text-xs mt-1">退出</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 4. 普通用户中心（核心页面，全功能入口） ====================================== -->
+        <div id="user-center-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（平板/电脑显示） -->
+            <nav class="bg-love-pink text-white py-3 px-4 lg:px-8 module-enter hidden sm:flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <h2 class="text-xl lg:text-2xl font-bold">
+                    <i class="fas fa-heart mr-2"></i> 心动邂逅 - 我的中心
+                </h2>
+                <div class="flex gap-3 lg:gap-4">
+                    <button id="user-find-btn" class="hover:bg-love-red px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">寻友配对</button>
+                    <button id="user-edit-btn" class="hover:bg-love-red px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">编辑主页</button>
+                    <button id="user-private-btn" class="hover:bg-love-red px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">私密空间</button>
+                    <button id="user-setting-btn" class="hover:bg-love-red px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">系统设置</button>
+                    <button id="user-logout-btn" class="hover:bg-love-red px-2 lg:px-3 py-1 rounded transition-all text-sm lg:text-base btn-click">退出登录</button>
+                </div>
+            </nav>
+
+            <!-- 个人信息卡片（三端适配） -->
+            <div class="container mx-auto px-4 py-6">
+                <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 module-enter">
+                    <div class="flex flex-col sm:flex-row items-center gap-4 lg:gap-8">
+                        <!-- 头像 -->
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 avatar-crop border-4 border-love-pink/30">
+                            <img id="user-avatar" src="https://picsum.photos/200/200?random=1" alt="个人头像" class="w-full h-full object-cover">
+                        </div>
+                        <!-- 核心信息 -->
+                        <div class="text-center sm:text-left flex-1">
+                            <h3 class="text-xl lg:text-2xl font-bold text-gray-800" id="user-username">测试用户</h3>
+                            <p class="text-gray-600 text-sm lg:text-base mt-1" id="user-realname">真实姓名：XXX（永久不可修改）</p>
+                            <div class="flex flex-wrap justify-center sm:justify-start gap-4 mt-3 text-sm lg:text-base">
+                                <p class="text-love-purple"><i class="fas fa-user mr-1"></i> 性别：<span id="user-gender">男</span></p>
+                                <p class="text-love-blue"><i class="fas fa-id-card mr-1"></i> 凭证：<span id="user-code">123456</span></p>
+                                <p class="text-love-red"><i class="fas fa-heart mr-1"></i> 情侣：<span id="user-couple-status" class="font-medium">未配对</span></p>
+                            </div>
+                        </div>
+                        <!-- 手机端编辑按钮 -->
+                        <button id="user-edit-mobile-btn" class="sm:hidden bg-love-purple text-white px-4 py-2 rounded-lg text-sm btn-click">
+                            <i class="fas fa-pen mr-1"></i> 编辑主页
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 功能板块网格（三端适配：手机2列/平板3列/电脑6列） -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6 mt-6">
+                    <!-- 寻友配对 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-100 btn-click" id="user-find-card">
+                        <div class="w-12 h-12 mx-auto bg-love-blue/10 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-search text-love-blue text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">寻友配对</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">搜索TA，开启缘分</p>
+                    </div>
+                    <!-- 个人主页 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-200 btn-click" id="user-home-card">
+                        <div class="w-12 h-12 mx-auto bg-love-purple/10 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-user-circle text-love-purple text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">个人主页</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">展示你的精彩生活</p>
+                    </div>
+                    <!-- 私密空间 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-300 btn-click" id="user-private-card">
+                        <div class="w-12 h-12 mx-auto bg-love-red/10 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-heart-lock text-love-red text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">私密空间</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">情侣专属甜蜜天地</p>
+                    </div>
+                    <!-- 动态广场 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-400 btn-click" id="user-dynamic-card">
+                        <div class="w-12 h-12 mx-auto bg-love-cyan/10 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-newspaper text-love-cyan text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">动态广场</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">查看大家的生活动态</p>
+                    </div>
+                    <!-- 情侣任务 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-500 btn-click" id="user-task-card">
+                        <div class="w-12 h-12 mx-auto bg-love-yellow/10 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-tasks text-love-yellow text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">情侣任务</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">完成任务提升亲密值</p>
+                    </div>
+                    <!-- 系统设置 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 text-center cursor-pointer hover:shadow-lg hover:translate-y-[-2px] transition-all module-enter delay-600 btn-click" id="user-setting-card">
+                        <div class="w-12 h-12 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-cog text-gray-600 text-xl"></i>
+                        </div>
+                        <h4 class="text-sm lg:text-base font-bold text-gray-800">系统设置</h4>
+                        <p class="text-xs lg:text-sm text-gray-500 mt-1">账号安全与个性化</p>
+                    </div>
+                </div>
+
+                <!-- 数据统计面板（三端适配：手机1列/平板2列/电脑4列） -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mt-6">
+                    <!-- 生活照 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 module-enter delay-100">
+                        <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-image text-love-blue mr-2"></i> 我的生活照
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2 mb-3" id="user-photo-list">
+                            <div class="h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all" id="user-photo-add">
+                                <div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-plus text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" class="hidden" id="user-photo-input" accept="image/*" multiple>
+                        <button class="w-full bg-gray-100 text-gray-700 py-1 rounded text-sm hover:bg-gray-200 transition-all btn-click" id="user-photo-more">上传更多</button>
+                    </div>
+                    <!-- 亲密值 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 module-enter delay-200">
+                        <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-star text-love-yellow mr-2"></i> 亲密值
+                        </h4>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-love-purple" id="user-intimacy">0</p>
+                            <p class="text-xs text-gray-500 mt-1" id="user-intimacy-tip">配对情侣后可积累亲密值</p>
+                        </div>
+                    </div>
+                    <!-- 近期访客 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 module-enter delay-300">
+                        <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-eye text-love-cyan mr-2"></i> 近期访客
+                        </h4>
+                        <div class="flex gap-2 overflow-x-auto pb-2" id="user-visitor-list">
+                            <div class="w-10 h-10 avatar-crop border-2 border-gray-200 flex items-center justify-center bg-gray-100 text-gray-400">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 系统通知 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 module-enter delay-400">
+                        <h4 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-bell text-love-red mr-2"></i> 系统通知
+                        </h4>
+                        <div class="text-center" id="user-notice">
+                            <p class="text-gray-500 text-sm">暂无新通知</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 移动端底部导航（仅手机端显示） -->
+            <div class="mobile-nav bg-white shadow-lg py-3 px-4 border-t border-gray-100 sm:hidden module-enter">
+                <div class="flex justify-around items-center">
+                    <button id="user-home-mobile" class="flex flex-col items-center text-love-pink btn-click">
+                        <i class="fas fa-home text-lg"></i>
+                        <span class="text-xs mt-1">首页</span>
+                    </button>
+                    <button id="user-find-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-pink transition-all btn-click">
+                        <i class="fas fa-search text-lg"></i>
+                        <span class="text-xs mt-1">寻友</span>
+                    </button>
+                    <button id="user-private-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-pink transition-all btn-click">
+                        <i class="fas fa-heart-lock text-lg"></i>
+                        <span class="text-xs mt-1">私密</span>
+                    </button>
+                    <button id="user-setting-mobile" class="flex flex-col items-center text-gray-500 hover:text-love-pink transition-all btn-click">
+                        <i class="fas fa-cog text-lg"></i>
+                        <span class="text-xs mt-1">设置</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 5. 编辑主页页面（全功能可用，数据可修改） ====================================== -->
+        <div id="user-edit-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-love-purple text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="edit-back-btn" class="hover:bg-purple-700 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">编辑我的主页</h2>
+                <button id="edit-save-btn" class="bg-white text-love-purple hover:bg-gray-100 px-3 py-1 rounded transition-all text-sm lg:text-base font-medium btn-click">
+                    保存修改
+                </button>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <div class="bg-white rounded-xl shadow-card p-4 lg:p-6 module-enter delay-100">
+                    <form id="user-edit-form" class="space-y-6">
+                        <!-- 头像修改 -->
+                        <div class="space-y-3">
+                            <label class="block text-gray-700 font-medium">个人头像 <span class="text-gray-500 text-sm">（点击更换，支持JPG/PNG）</span></label>
+                            <div class="flex items-center gap-4">
+                                <div class="w-24 h-24 avatar-crop border-4 border-love-purple/30 cursor-pointer hover:opacity-90 transition-all" id="edit-avatar-box">
+                                    <img id="edit-avatar" src="https://picsum.photos/200/200?random=1" alt="更换头像" class="w-full h-full object-cover">
+                                </div>
+                                <input type="file" class="hidden" id="edit-avatar-input" accept="image/*">
+                                <button type="button" id="edit-avatar-btn" class="bg-love-purple/10 text-love-purple px-4 py-2 rounded-lg hover:bg-love-purple/20 transition-all btn-click">
+                                    <i class="fas fa-upload mr-1"></i> 更换头像
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 网名修改 -->
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-medium" for="edit-username">专属网名 <span class="text-gray-500 text-sm">（可自由修改，2-10字符）</span></label>
+                            <input type="text" id="edit-username" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" placeholder="请输入新网名" required>
+                            <p id="edit-username-tip" class="text-xs text-red-500 hidden">网名长度需在2-10个字符之间</p>
+                        </div>
+                        <!-- 背景图修改 -->
+                        <div class="space-y-3">
+                            <label class="block text-gray-700 font-medium">主页背景图 <span class="text-gray-500 text-sm">（点击更换，支持JPG/PNG）</span></label>
+                            <div class="w-full h-40 rounded-lg overflow-hidden border-2 border-dashed border-gray-200 cursor-pointer hover:border-love-purple transition-all" id="edit-bg-box">
+                                <img id="edit-bg" src="https://picsum.photos/1200/400?random=10" alt="更换背景" class="w-full h-full object-cover">
+                            </div>
+                            <input type="file" class="hidden" id="edit-bg-input" accept="image/*">
+                            <button type="button" id="edit-bg-btn" class="bg-love-purple/10 text-love-purple px-4 py-2 rounded-lg hover:bg-love-purple/20 transition-all btn-click">
+                                <i class="fas fa-upload mr-1"></i> 更换背景图
+                            </button>
+                        </div>
+                        <!-- 个性签名 -->
+                        <div class="space-y-2">
+                            <label class="block text-gray-700 font-medium" for="edit-signature">个性签名 <span class="text-gray-500 text-sm">（0-20字符）</span></label>
+                            <input type="text" id="edit-signature" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-purple/50 focus:border-love-purple transition-all" placeholder="输入你的个性签名，展示在主页">
+                            <p class="text-xs text-gray-500"><span id="edit-signature-count">0</span>/20 字符</p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 6. 寻友配对页面（全功能可用，可搜索/表白/配对） ====================================== -->
+        <div id="user-find-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-love-blue text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="find-back-btn" class="hover:bg-blue-600 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">寻友配对</h2>
+                <div></div>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <!-- 搜索框 -->
+                <div class="w-full max-w-md mx-auto module-enter delay-100">
+                    <form id="find-form" class="flex gap-2">
+                        <input type="text" id="find-username" class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-blue/50 focus:border-love-blue transition-all" placeholder="输入对方网名精准搜索" required>
+                        <button type="submit" class="bg-love-blue text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-all shadow-btn btn-click">
+                            <i class="fas fa-search mr-1"></i> 搜索
+                        </button>
+                    </form>
+                    <p class="text-xs text-gray-500 mt-2 text-center">💡 仅能搜索已通过开发者审核的用户</p>
+                </div>
+
+                <!-- 搜索结果 -->
+                <div class="mt-8 max-w-md mx-auto module-enter delay-200" id="find-result">
+                    <!-- 无结果 -->
+                    <div id="find-no-result" class="bg-white rounded-xl shadow-card p-6 text-center">
+                        <i class="fas fa-search-plus text-3xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-500">暂无搜索结果，请输入正确的网名</p>
+                    </div>
+                    <!-- 有结果（默认隐藏） -->
+                    <div id="find-have-result" class="hidden bg-white rounded-xl shadow-card p-6">
+                        <div class="flex flex-col items-center">
+                            <!-- TA的头像 -->
+                            <div class="w-32 h-32 avatar-crop border-4 border-love-blue/30 mb-4">
+                                <img id="ta-avatar" src="https://picsum.photos/300/300?random=2" alt="TA的头像" class="w-full h-full object-cover">
+                            </div>
+                            <!-- TA的信息 -->
+                            <h3 class="text-2xl font-bold text-gray-800 mb-1" id="ta-username">心动的TA</h3>
+                            <p class="text-gray-600 mb-3" id="ta-gender">性别：女</p>
+                            <p class="text-love-purple text-sm mb-4" id="ta-couple-status">情侣状态：未配对</p>
+                            <!-- TA的生活照 -->
+                            <p class="text-gray-700 font-medium self-start mb-2">生活照展示</p>
+                            <div class="grid grid-cols-2 gap-3 w-full mb-6" id="ta-photo-list">
+                                <div class="h-24 rounded-lg overflow-hidden">
+                                    <img src="https://picsum.photos/400/300?random=3" alt="TA的生活照" class="w-full h-full object-cover">
+                                </div>
+                                <div class="h-24 rounded-lg overflow-hidden">
+                                    <img src="https://picsum.photos/400/301?random=4" alt="TA的生活照" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            <!-- 表白按钮 -->
+                            <button id="send-confess-btn" class="w-full bg-love-pink text-white py-3 rounded-lg hover:bg-love-red transition-all duration-300 font-medium shadow-btn btn-click">
+                                <i class="fas fa-heart mr-1"></i> 发送表白申请
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 7. 私密空间页面（全功能可用，续火花/加亲密值/留言） ====================================== -->
+        <div id="user-private-page" class="hidden-page min-h-screen bg-gradient-to-b from-love-pink/10 to-love-purple/10 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-love-red text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="private-back-btn" class="hover:bg-love-pink px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">专属私密空间</h2>
+                <div></div>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-card p-6 lg:p-8 module-enter delay-100">
+                    <!-- 情侣头像依偎 -->
+                    <div class="flex justify-center items-center gap-4 mb-8 relative">
+                        <div class="w-20 h-20 avatar-crop border-3 border-love-pink -mr-4 z-20 bg-white p-1">
+                            <img id="private-my-avatar" src="https://picsum.photos/200/200?random=1" alt="我的头像" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-20 h-20 avatar-crop border-3 border-love-pink z-10 bg-white p-1">
+                            <img id="private-ta-avatar" src="https://picsum.photos/300/300?random=2" alt="情侣头像" class="w-full h-full object-cover">
+                        </div>
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-love-red rounded-full flex items-center justify-center text-white border-4 border-white sparkle">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+
+                    <!-- 情侣核心信息 -->
+                    <div class="text-center mb-8">
+                        <h3 class="text-xl lg:text-2xl font-bold text-gray-800 flex justify-center items-center gap-2">
+                            <span id="private-my-name">我的网名</span>
+                            <span class="text-love-red"><i class="fas fa-heart"></i></span>
+                            <span id="private-ta-name">情侣网名</span>
+                        </h3>
+                        <div class="flex justify-center gap-6 mt-3 text-sm lg:text-base">
+                            <p class="text-love-pink">
+                                <i class="fas fa-fire-alt sparkle mr-1"></i> 火花天数：<span id="private-sparkle-days" class="font-bold">1</span>天
+                            </p>
+                            <p class="text-love-purple">
+                                <i class="fas fa-star mr-1"></i> 亲密值：<span id="private-intimacy" class="font-bold">99</span>
+                            </p>
+                        </div>
+                        <button id="private-renew-sparkle" class="mt-4 bg-love-red/10 text-love-red px-4 py-2 rounded-lg hover:bg-love-red/20 transition-all btn-click">
+                            <i class="fas fa-sync-alt mr-1"></i> 今日续火花
+                        </button>
+                    </div>
+
+                    <!-- 情侣留言板 -->
+                    <div class="border-t border-gray-100 pt-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-comment-dots text-love-pink mr-2"></i> 情侣悄悄话
+                        </h4>
+                        <div class="space-y-4 max-h-[30vh] overflow-y-auto pr-2 mb-4" id="private-msg-list">
+                            <!-- 对方留言 -->
+                            <div class="flex flex-col items-start">
+                                <p class="text-xs text-gray-500 mb-1">TA · 刚刚</p>
+                                <p class="bg-gray-100 px-4 py-2 rounded-lg rounded-tl-none max-w-[80%]">宝贝，今天也要开心呀～</p>
+                            </div>
+                            <!-- 我的留言 -->
+                            <div class="flex flex-col items-end">
+                                <p class="text-xs text-gray-500 mb-1">我 · 1分钟前</p>
+                                <p class="bg-love-pink/10 text-love-pink px-4 py-2 rounded-lg rounded-tr-none max-w-[80%]">收到～你也是😘</p>
+                            </div>
+                        </div>
+                        <!-- 发送留言 -->
+                        <form id="private-msg-form" class="flex gap-2">
+                            <input type="text" id="private-msg-input" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-pink/50 focus:border-love-pink transition-all" placeholder="想对TA说些什么..." required>
+                            <button type="submit" class="bg-love-pink text-white px-3 py-2 rounded-lg hover:bg-love-red transition-all btn-click">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 情侣任务区 -->
+                <div class="max-w-lg mx-auto mt-6 bg-white rounded-xl shadow-card p-4 lg:p-6 module-enter delay-200">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-tasks text-love-yellow mr-2"></i> 今日情侣任务
+                    </h4>
+                    <div class="space-y-3" id="private-task-list">
+                        <div class="flex justify-between items-center p-3 border border-gray-100 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-hand-holding-heart text-love-pink"></i>
+                                <p class="text-sm">和TA互道早晚安</p>
+                            </div>
+                            <button class="bg-love-yellow/10 text-love-yellow px-3 py-1 rounded-lg text-sm hover:bg-love-yellow/20 transition-all btn-click">完成+10亲密值</button>
+                        </div>
+                        <div class="flex justify-between items-center p-3 border border-gray-100 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-camera text-love-blue"></i>
+                                <p class="text-sm">和TA合拍一张照片</p>
+                            </div>
+                            <button class="bg-love-yellow/10 text-love-yellow px-3 py-1 rounded-lg text-sm hover:bg-love-yellow/20 transition-all btn-click">完成+20亲密值</button>
+                        </div>
+                        <div class="flex justify-between items-center p-3 border border-gray-100 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-walk text-love-green"></i>
+                                <p class="text-sm">和TA一起散步30分钟</p>
+                            </div>
+                            <button class="bg-love-yellow/10 text-love-yellow px-3 py-1 rounded-lg text-sm hover:bg-love-yellow/20 transition-all btn-click">完成+30亲密值</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 8. 个人主页页面（全功能展示，访客记录+动态） ====================================== -->
+        <div id="user-home-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 shadow-sm backdrop-filter: blur(4px)">
+                <button id="home-back-btn" class="hover:bg-gray-100 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold text-gray-800">我的个人主页</h2>
+                <button id="home-share-btn" class="hover:bg-gray-100 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-share-alt mr-1"></i> 分享
+                </button>
+            </nav>
+
+            <!-- 主页背景+头像 -->
+            <div class="w-full h-48 lg:h-64 relative module-enter">
+                <img id="home-bg" src="https://picsum.photos/1200/400?random=10" alt="主页背景" class="w-full h-full object-cover">
+                <div class="absolute bottom-0 left-4 lg:left-8 -mb-12 lg:-mb-16 w-24 h-24 lg:w-32 lg:h-32 avatar-crop border-4 border-white bg-white">
+                    <img id="home-avatar" src="https://picsum.photos/200/200?random=1" alt="个人头像" class="w-full h-full object-cover">
+                </div>
+            </div>
+
+            <div class="container mx-auto px-4 py-16 lg:py-20">
+                <div class="max-w-lg mx-auto">
+                    <!-- 个人信息 -->
+                    <div class="text-center mb-8 module-enter delay-100">
+                        <h3 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-2" id="home-username">测试用户</h3>
+                        <p class="text-gray-600 mb-3" id="home-signature">愿有人陪你颠沛流离，愿你历尽千帆归来仍是少年</p>
+                        <div class="flex justify-center gap-6 text-sm lg:text-base">
+                            <p class="text-love-purple"><i class="fas fa-user mr-1"></i> <span id="home-gender">男</span></p>
+                            <p class="text-love-blue"><i class="fas fa-heart mr-1"></i> <span id="home-couple">已配对</span></p>
+                            <p class="text-love-cyan"><i class="fas fa-eye mr-1"></i> <span id="home-visit-count">99+</span>访客</p>
+                        </div>
+                    </div>
+
+                    <!-- 生活照相册 -->
+                    <div class="mb-8 module-enter delay-200">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-images text-love-pink mr-2"></i> 我的生活照
+                        </h4>
+                        <div class="grid grid-cols-3 gap-2" id="home-photo-list">
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/300?random=3" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/301?random=4" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/302?random=5" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/303?random=6" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/304?random=7" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all">
+                                <img src="https://picsum.photos/400/305?random=8" alt="生活照" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 我的动态 -->
+                    <div class="mb-8 module-enter delay-300">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-newspaper text-love-blue mr-2"></i> 我的生活动态
+                        </h4>
+                        <div class="space-y-6" id="home-dynamic-list">
+                            <div class="bg-white rounded-xl shadow-card p-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 avatar-crop">
+                                        <img src="https://picsum.photos/200/200?random=1" alt="头像" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-800">测试用户</p>
+                                        <p class="text-xs text-gray-500">2026-01-28 · 今天</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-800 mb-3">今天和喜欢的人一起去看了海，超开心～🌊</p>
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <div class="rounded-lg overflow-hidden">
+                                        <img src="https://picsum.photos/800/600?random=9" alt="动态图片" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="rounded-lg overflow-hidden">
+                                        <img src="https://picsum.photos/800/601?random=10" alt="动态图片" class="w-full h-full object-cover">
+                                    </div>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-500">
+                                    <p class="cursor-pointer hover:text-love-pink transition-all"><i class="fas fa-heart mr-1"></i> 520</p>
+                                    <p class="cursor-pointer hover:text-love-blue transition-all"><i class="fas fa-comment mr-1"></i> 1314</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-all btn-click">
+                            加载更多动态
+                        </button>
+                    </div>
+
+                    <!-- 近期访客 -->
+                    <div class="module-enter delay-400">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-eye text-love-cyan mr-2"></i> 近期访客
+                        </h4>
+                        <div class="flex gap-3 overflow-x-auto pb-3" id="home-visitor-list">
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 avatar-crop border-2 border-gray-200 cursor-pointer hover:border-love-pink transition-all">
+                                    <img src="https://picsum.photos/100/101?random=11" alt="访客" class="w-full h-full object-cover">
+                                </div>
+                                <p class="text-xs text-gray-800 mt-1 w-16 truncate text-center">心动的TA</p>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 avatar-crop border-2 border-gray-200 cursor-pointer hover:border-love-pink transition-all">
+                                    <img src="https://picsum.photos/100/102?random=12" alt="访客" class="w-full h-full object-cover">
+                                </div>
+                                <p class="text-xs text-gray-800 mt-1 w-16 truncate text-center">隔壁小王</p>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 avatar-crop border-2 border-gray-200 cursor-pointer hover:border-love-pink transition-all">
+                                    <img src="https://picsum.photos/100/103?random=13" alt="访客" class="w-full h-full object-cover">
+                                </div>
+                                <p class="text-xs text-gray-800 mt-1 w-16 truncate text-center">爱笑的女孩</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 9. 动态广场页面（全功能浏览/互动） ====================================== -->
+        <div id="user-dynamic-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-love-cyan text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="dynamic-back-btn" class="hover:bg-cyan-600 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">动态广场</h2>
+                <button id="dynamic-publish-btn" class="bg-white text-love-cyan hover:bg-gray-100 px-3 py-1 rounded transition-all text-sm lg:text-base font-medium btn-click">
+                    <i class="fas fa-plus mr-1"></i> 发布动态
+                </button>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <!-- 广场搜索/筛选 -->
+                <div class="max-w-lg mx-auto flex gap-2 mb-6 module-enter delay-100">
+                    <input type="text" class="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-love-cyan/50 focus:border-love-cyan transition-all" placeholder="搜索动态/用户">
+                    <button class="bg-love-cyan text-white px-3 py-2 rounded-lg hover:bg-cyan-600 transition-all btn-click">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+
+                <!-- 动态列表 -->
+                <div class="max-w-lg mx-auto space-y-6 module-enter delay-200" id="dynamic-list">
+                    <div class="bg-white rounded-xl shadow-card p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 avatar-crop">
+                                <img src="https://picsum.photos/200/200?random=14" alt="用户头像" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800">爱笑的女孩</p>
+                                <p class="text-xs text-gray-500">2026-01-27 · 昨天</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-800 mb-3">打卡一家超好吃的甜品店，颜值和味道双在线～🍰</p>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <div class="rounded-lg overflow-hidden">
+                                <img src="https://picsum.photos/500/500?random=15" alt="甜品" class="w-full h-full object-cover">
+                            </div>
+                            <div class="rounded-lg overflow-hidden">
+                                <img src="https://picsum.photos/500/501?random=16" alt="甜品" class="w-full h-full object-cover">
+                            </div>
+                            <div class="rounded-lg overflow-hidden">
+                                <img src="https://picsum.photos/500/502?random=17" alt="甜品" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-pink transition-all btn-click">
+                                <i class="fas fa-heart"></i> <span>328</span>
+                            </button>
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-blue transition-all btn-click">
+                                <i class="fas fa-comment"></i> <span>66</span>
+                            </button>
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-cyan transition-all btn-click">
+                                <i class="fas fa-share-alt"></i> <span>18</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-card p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 avatar-crop">
+                                <img src="https://picsum.photos/200/200?random=18" alt="用户头像" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800">追风的少年</p>
+                                <p class="text-xs text-gray-500">2026-01-27 · 昨天</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-800 mb-3">周末爬山的快乐，登顶的那一刻所有疲惫都消失了～⛰️</p>
+                        <div class="rounded-lg overflow-hidden mb-3">
+                            <img src="https://picsum.photos/800/400?random=19" alt="爬山" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-pink transition-all btn-click">
+                                <i class="fas fa-heart"></i> <span>456</span>
+                            </button>
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-blue transition-all btn-click">
+                                <i class="fas fa-comment"></i> <span>99</span>
+                            </button>
+                            <button class="flex items-center gap-1 text-gray-500 hover:text-love-cyan transition-all btn-click">
+                                <i class="fas fa-share-alt"></i> <span>23</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 加载更多 -->
+                    <button class="w-full bg-gray-100 text-gray-700 py-3 rounded-lg hover:bg-gray-200 transition-all btn-click">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> 加载更多
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 10. 情侣任务页面（全功能完成/领奖励） ====================================== -->
+        <div id="user-task-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-love-yellow text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="task-back-btn" class="hover:bg-yellow-600 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">情侣任务中心</h2>
+                <div></div>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <div class="max-w-lg mx-auto module-enter delay-100">
+                    <!-- 任务统计 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 mb-6 flex justify-between items-center">
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm">今日完成</p>
+                            <p class="text-2xl font-bold text-love-yellow" id="task-today-complete">0/5</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm">累计亲密值</p>
+                            <p class="text-2xl font-bold text-love-purple" id="task-total-intimacy">99</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm">连续打卡</p>
+                            <p class="text-2xl font-bold text-love-red" id="task-continue-days">3天</p>
+                        </div>
+                    </div>
+
+                    <!-- 今日日常任务 -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-sun text-love-yellow mr-2"></i> 今日日常任务
+                        </h4>
+                        <div class="space-y-3" id="task-daily-list">
+                            <div class="bg-white rounded-xl shadow-card p-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-love-yellow/10 flex items-center justify-center text-love-yellow">
+                                        <i class="fas fa-message"></i>
+                                    </div>
+                                    <p class="text-gray-800">和TA发送消息≥10条</p>
+                                </div>
+                                <button class="bg-love-yellow text-white px-3 py-1 rounded-lg text-sm hover:bg-yellow-600 transition-all btn-click">完成+5亲密值</button>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-card p-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-love-yellow/10 flex items-center justify-center text-love-yellow">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                    <p class="text-gray-800">给TA送一份虚拟礼物</p>
+                                </div>
+                                <button class="bg-love-yellow text-white px-3 py-1 rounded-lg text-sm hover:bg-yellow-600 transition-all btn-click">完成+15亲密值</button>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-card p-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-love-yellow/10 flex items-center justify-center text-love-yellow">
+                                        <i class="fas fa-music"></i>
+                                    </div>
+                                    <p class="text-gray-800">和TA一起听一首歌</p>
+                                </div>
+                                <button class="bg-love-yellow text-white px-3 py-1 rounded-lg text-sm hover:bg-yellow-600 transition-all btn-click">完成+10亲密值</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 每周挑战任务 -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-trophy text-love-red mr-2"></i> 每周挑战任务
+                        </h4>
+                        <div class="space-y-3" id="task-weekly-list">
+                            <div class="bg-white rounded-xl shadow-card p-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-love-red/10 flex items-center justify-center text-love-red">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-800">连续7天续火花</p>
+                                        <p class="text-xs text-gray-500">进度：3/7天</p>
+                                    </div>
+                                </div>
+                                <button class="bg-love-red text-white px-3 py-1 rounded-lg text-sm hover:bg-love-pink transition-all btn-click">完成+100亲密值</button>
+                            </div>
+                            <div class="bg-white rounded-xl shadow-card p-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-love-red/10 flex items-center justify-center text-love-red">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-800">累计亲密值达到520</p>
+                                        <p class="text-xs text-gray-500">进度：99/520</p>
+                                    </div>
+                                </div>
+                                <button class="bg-love-red text-white px-3 py-1 rounded-lg text-sm hover:bg-love-pink transition-all btn-click">完成+200亲密值</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务奖励中心 -->
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-award text-love-purple mr-2"></i> 奖励中心
+                        </h4>
+                        <div class="bg-white rounded-xl shadow-card p-4">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-2 border-b border-gray-100">
+                                    <p class="text-gray-800">亲密值×52</p>
+                                    <button class="bg-love-purple/10 text-love-purple px-3 py-1 rounded-lg text-sm hover:bg-love-purple/20 transition-all btn-click">亲密值≥100可领取</button>
+                                </div>
+                                <div class="flex justify-between items-center p-2 border-b border-gray-100">
+                                    <p class="text-gray-800">专属情侣头像框</p>
+                                    <button class="bg-love-purple/10 text-love-purple px-3 py-1 rounded-lg text-sm hover:bg-love-purple/20 transition-all btn-click">连续打卡7天可领取</button>
+                                </div>
+                                <div class="flex justify-between items-center p-2">
+                                    <p class="text-gray-800">私密空间背景图</p>
+                                    <button class="bg-love-purple/10 text-love-purple px-3 py-1 rounded-lg text-sm hover:bg-love-purple/20 transition-all btn-click">完成5个日常任务可领取</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================== 11. 系统设置页面（全功能修改/安全/个性化） ====================================== -->
+        <div id="user-setting-page" class="hidden-page min-h-screen bg-gray-50 content-padding">
+            <!-- 顶部导航（带返回） -->
+            <nav class="bg-gray-800 text-white py-3 px-4 lg:px-8 module-enter flex justify-between items-center sticky top-0 z-90 backdrop-filter: blur(4px)">
+                <button id="setting-back-btn" class="hover:bg-gray-700 px-2 py-1 rounded transition-all text-sm lg:text-base btn-click">
+                    <i class="fas fa-arrow-left mr-1"></i> 返回
+                </button>
+                <h2 class="text-xl lg:text-2xl font-bold">系统设置</h2>
+                <div></div>
+            </nav>
+
+            <div class="container mx-auto px-4 py-6">
+                <div class="max-w-lg mx-auto space-y-6 module-enter delay-100">
+                    <!-- 账号安全 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-shield-halved text-love-red mr-2"></i> 账号安全
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">修改密码</p>
+                                <button class="text-love-blue hover:underline btn-click">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">绑定手机号</p>
+                                <button class="text-love-blue hover:underline btn-click">
+                                    <span class="text-xs text-red-500 mr-2">未绑定</span>
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center p-3">
+                                <p class="text-gray-800">登录设备管理</p>
+                                <button class="text-love-blue hover:underline btn-click">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 隐私设置 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-lock text-love-purple mr-2"></i> 隐私设置
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">隐藏情侣状态</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-hide-couple">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-purple/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-purple"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">隐藏生活照</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-hide-photo">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-purple/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-purple"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">仅好友可访问主页</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-only-friend">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-purple/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-purple"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3">
+                                <p class="text-gray-800">清除访客记录</p>
+                                <button class="text-love-red hover:underline btn-click">
+                                    <i class="fas fa-trash mr-1"></i> 清除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 通用设置 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-cog text-gray-600 mr-2"></i> 通用设置
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">消息通知</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-notice" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-blue/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-blue"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">声音提醒</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-sound" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-blue/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-blue"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
+                                <p class="text-gray-800">夜间模式</p>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" id="setting-night">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-love-blue/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-love-blue"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-3">
+                                <p class="text-gray-800">清除缓存</p>
+                                <button class="text-love-blue hover:underline btn-click">
+                                    <span class="text-xs text-gray-500 mr-2">2.5MB</span>
+                                    <i class="fas fa-trash mr-1"></i> 清除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 关于我们 -->
+                    <div class="bg-white rounded-xl shadow-card p-4 lg:p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-info-circle text-love-cyan mr-2"></i> 关于我们
+                        </h4>
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <p>版本号：V1.0.0</p>
+                            <p>开发者：感悟</p>
+                            <p>制作：张诺策</p>
+                            <p>更新时间：2026-01-28</p>
+                            <p class="pt-3 border-t border-gray-100">本平台为专属恋爱社交平台，所有数据本地存储，保护你的隐私安全～</p>
+                        </div>
+                        <button class="w-full mt-4 bg-love-cyan/10 text-love-cyan py-2 rounded-lg hover:bg-love-cyan/20 transition-all btn-click">
+                            <i class="fas fa-star mr-1"></i> 检查更新
+                        </button>
+                    </div>
+
+                    <!-- 退出登录 -->
+                    <button id="setting-logout-btn" class="w-full bg-red-100 text-red-600 py-3 rounded-xl hover:bg-red-200 transition-all font-medium btn-click">
+                        <i class="fas fa-sign-out-alt mr-2"></i> 退出当前账号
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================== 全局JS（全功能逻辑，数据持久化，按钮交互） ====================================== -->
+    <script>
+        // 全局用户信息
+        let currentUser = {
+            username: '',
+            realname: '',
+            gender: '',
+            code: '',
+            password: '',
+            isDev: false,
+            avatar: 'https://picsum.photos/200/200?random=1',
+            bg: 'https://picsum.photos/1200/400?random=10',
+            signature: '',
+            couple: null,
+            intimacy: 0,
+            sparkleDays: 0,
+            photos: [],
+            visitor: []
+        };
+
+        // 页面切换核心函数
+        function hideAllPages() {
+            document.querySelectorAll('[id$="-page"]').forEach(page => {
+                page.classList.add('hidden-page');
+            });
+        }
+
+        function showPage(pageId) {
+            hideAllPages();
+            const page = document.getElementById(pageId);
+            page.classList.remove('hidden-page');
+            // 重新触发动画
+            page.querySelectorAll('.module-enter').forEach(module => {
+                module.classList.remove('module-enter');
+                setTimeout(() => {
+                    module.classList.add('module-enter');
+                }, 10);
+            });
+        }
+
+        // 表单提示函数
+        function showTip(tipId, content) {
+            const tip = document.getElementById(tipId);
+            tip.textContent = content;
+            tip.classList.remove('hidden');
+        }
+
+        function hideTip(tipId) {
+            document.getElementById(tipId)?.classList.add('hidden');
+        }
+
+        // 初始化页面
+        function initPage() {
+            // 注册页面 - 生成6位凭证
+            document.getElementById('generate-code').addEventListener('click', () => {
+                const code = Math.floor(100000 + Math.random() * 900000).toString();
+                document.getElementById('register-code').value = code;
+            });
+
+            // 注册表单提交
+            document.getElementById('register-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('register-username').value.trim();
+                const realname = document.getElementById('register-realname').value.trim();
+                const password = document.getElementById('register-password').value;
+                const gender = document.querySelector('input[name="gender"]:checked')?.value;
+                const code = document.getElementById('register-code').value;
+
+                // 校验
+                let isValid = true;
+                if (username.length < 2 || username.length > 10) {
+                    showTip('register-username-tip', '网名不能为空（2-10个字符）');
+                    isValid = false;
+                } else {
+                    hideTip('register-username-tip');
+                }
+                if (!realname) {
+                    showTip('register-realname-tip', '真实姓名不能为空');
+                    isValid = false;
+                } else {
+                    hideTip('register-realname-tip');
+                }
+                if (password.length < 6 || password.length > 16) {
+                    showTip('register-password-tip', '密码长度需在6-16位之间');
+                    isValid = false;
+                } else {
+                    hideTip('register-password-tip');
+                }
+                if (!code) {
+                    alert('请先生成6位验证凭证');
+                    isValid = false;
+                }
+                if (!gender) {
+                    alert('请选择性别');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    // 组装用户信息
+                    const newUser = { ...currentUser, username, realname, gender, code, password };
+                    // 存储待审核用户
+                    let auditList = JSON.parse(localStorage.getItem('loveAuditList')) || [];
+                    auditList.push(newUser);
+                    localStorage.setItem('loveAuditList', JSON.stringify(auditList));
+                    // 存储用户临时信息
+                    localStorage.setItem('loveTempUser_' + username, JSON.stringify(newUser));
+                    // 重置表单并跳转
+                    e.target.reset();
+                    showPage('login-page');
+                    alert('注册申请已提交，等待开发者审核～');
+                }
+            });
+
+            // 登录表单提交
+            document.getElementById('login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('login-username').value.trim();
+                const realname = document.getElementById('login-realname').value.trim();
+                const password = document.getElementById('login-password').value;
+
+                // 开发者账号
+                if (username === 'ganwu521' && realname === 'ganwu521' && password === 'ganwu521') {
+                    currentUser.isDev = true;
+                    currentUser.username = 'ganwu521';
+                    currentUser.realname = 'ganwu521';
+                    showPage('dev-page');
+                    e.target.reset();
+                    initDevPage();
+                    return;
+                }
+
+                // 普通用户校验
+                let isValid = true;
+                if (!username) {
+                    showTip('login-username-tip', '请填写已注册的网名');
+                    isValid = false;
+                } else {
+                    hideTip('login-username-tip');
+                }
+                if (!realname) {
+                    showTip('login-realname-tip', '请填写注册时的真实姓名');
+                    isValid = false;
+                } else {
+                    hideTip('login-realname-tip');
+                }
+                if (password.length < 6) {
+                    showTip('login-password-tip', '密码长度不少于6位/密码错误');
+                    isValid = false;
+                } else {
+                    hideTip('login-password-tip');
+                }
+
+                if (isValid) {
+                    // 从localStorage获取已审核用户
+                    const userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+                    const user = userList.find(u => u.username === username && u.realname === realname && u.password === password);
+                    if (user) {
+                        currentUser = { ...currentUser, ...user };
+                        showPage('user-center-page');
+                        e.target.reset();
+                        initUserCenter();
+                        initAllUserPage();
+                    } else {
+                        showTip('login-username-tip', '账号未审核/信息错误');
+                    }
+                }
+            });
+
+            // 登录/注册跳转
+            document.getElementById('to-register').addEventListener('click', () => showPage('register-page'));
+            document.getElementById('to-login').addEventListener('click', () => showPage('login-page'));
+        }
+
+        // 开发者页面初始化
+        function initDevPage() {
+            // 面板切换
+            const showDevPanel = (panelId) => {
+                document.querySelectorAll('[id^="dev-"]-panel').forEach(panel => {
+                    panel.classList.add('hidden');
+                });
+                document.getElementById(panelId).classList.remove('hidden');
+                // 移动端导航样式
+                document.querySelectorAll('[id^="dev-"]-mobile').forEach(btn => {
+                    btn.querySelector('i').parentNode.classList.remove('text-love-red');
+                    btn.querySelector('i').parentNode.classList.add('text-gray-500');
+                });
+                document.getElementById(panelId.replace('dev-', 'dev-').replace('-panel', '-mobile')).querySelector('i').parentNode.classList.add('text-love-red');
+                document.getElementById(panelId.replace('dev-', 'dev-').replace('-panel', '-mobile')).querySelector('i').parentNode.classList.remove('text-gray-500');
+            };
+
+            // 顶部导航切换
+            document.getElementById('dev-audit-btn').addEventListener('click', () => showDevPanel('dev-audit-panel'));
+            document.getElementById('dev-member-btn').addEventListener('click', () => showDevPanel('dev-member-panel'));
+            document.getElementById('dev-file-btn').addEventListener('click', () => showDevPanel('dev-file-panel'));
+            document.getElementById('dev-board-btn').addEventListener('click', () => showDevPanel('dev-board-panel'));
+            document.getElementById('dev-logout-btn').addEventListener('click', () => {
+                currentUser.isDev = false;
+                showPage('login-page');
+            });
+
+            // 移动端导航切换
+            document.getElementById('dev-audit-mobile').addEventListener('click', () => showDevPanel('dev-audit-panel'));
+            document.getElementById('dev-member-mobile').addEventListener('click', () => showDevPanel('dev-member-panel'));
+            document.getElementById('dev-file-mobile').addEventListener('click', () => showDevPanel('dev-file-panel'));
+            document.getElementById('dev-board-mobile').addEventListener('click', () => showDevPanel('dev-board-panel'));
+            document.getElementById('dev-logout-mobile').addEventListener('click', () => {
+                currentUser.isDev = false;
+                showPage('login-page');
+            });
+
+            // 刷新审核列表
+            const refreshAuditList = () => {
+                const auditList = JSON.parse(localStorage.getItem('loveAuditList')) || [];
+                const auditListEl = document.getElementById('dev-audit-list');
+                document.getElementById('dev-audit-count').textContent = auditList.length;
+
+                if (auditList.length === 0) {
+                    auditListEl.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-inbox text-3xl mb-2"></i>
+                            <p>暂无待审核的注册申请</p>
+                        </div>
+                    `;
+                    return;
+                }                auditListEl.innerHTML = '';
+                auditList.forEach((user, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 border border-gray-100 rounded-lg flex flex-col gap-2';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-gray-800">网名：${user.username}</p>
+                                <p class="text-sm text-gray-600">真实姓名：${user.realname}</p>
+                                <p class="text-sm text-gray-600">性别：${user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}</p>
+                                <p class="text-sm text-love-purple">凭证：${user.code}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="bg-green-100 text-green-600 px-3 py-1 rounded text-sm hover:bg-green-200 transition-all btn-click" data-index="${index}">通过</button>
+                                <button class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition-all btn-click" data-index="${index}">拒绝</button>
+                            </div>
+                        </div>
+                    `;
+                    auditListEl.appendChild(item);
+                });
+
+                // 审核按钮事件
+                document.querySelectorAll('#dev-audit-list .bg-green-100').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        const auditList = JSON.parse(localStorage.getItem('loveAuditList')) || [];
+                        const passUser = auditList[index];
+                        // 加入已审核用户列表
+                        let userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+                        userList.push(passUser);
+                        localStorage.setItem('loveUserList', JSON.stringify(userList));
+                        // 移除待审核列表
+                        auditList.splice(index, 1);
+                        localStorage.setItem('loveAuditList', JSON.stringify(auditList));
+                        // 刷新列表
+                        refreshAuditList();
+                        alert('审核通过，用户可正常登录');
+                    });
+                });
+
+                document.querySelectorAll('#dev-audit-list .bg-red-100').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        const auditList = JSON.parse(localStorage.getItem('loveAuditList')) || [];
+                        auditList.splice(index, 1);
+                        localStorage.setItem('loveAuditList', JSON.stringify(auditList));
+                        refreshAuditList();
+                        alert('已拒绝该注册申请');
+                    });
+                });
+            };
+
+            // 初始化审核列表
+            refreshAuditList();
+            document.getElementById('dev-refresh-audit').addEventListener('click', refreshAuditList);
+
+            // 成员管理列表
+            const refreshMemberList = (searchVal = '') => {
+                let userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+                // 搜索过滤
+                if (searchVal) {
+                    userList = userList.filter(user => 
+                        user.username.includes(searchVal) || user.realname.includes(searchVal)
+                    );
+                }
+                const memberListEl = document.getElementById('dev-member-list');
+                document.getElementById('dev-member-count').textContent = userList.length;
+
+                if (userList.length === 0) {
+                    memberListEl.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-user-friends text-3xl mb-2"></i>
+                            <p>暂无注册成员</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                memberListEl.innerHTML = '';
+                userList.forEach(user => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 border border-gray-100 rounded-lg flex justify-between items-center';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 avatar-crop">
+                                <img src="${user.avatar || 'https://picsum.photos/200/200?random=1'}" alt="头像" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800">${user.username}</p>
+                                <p class="text-sm text-gray-600">${user.realname} | ${user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}</p>
+                            </div>
+                        </div>
+                        <button class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200 transition-all btn-click" data-username="${user.username}">删除</button>
+                    `;
+                    memberListEl.appendChild(item);
+                });
+
+                // 删除成员事件
+                document.querySelectorAll('#dev-member-list .bg-red-100').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const username = e.target.dataset.username;
+                        if (confirm(`确定要删除用户【${username}】吗？`)) {
+                            let userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+                            userList = userList.filter(user => user.username !== username);
+                            localStorage.setItem('loveUserList', JSON.stringify(userList));
+                            refreshMemberList(document.getElementById('dev-member-search').value);
+                        }
+                    });
+                });
+            };
+
+            // 成员搜索
+            document.getElementById('dev-member-search').addEventListener('input', (e) => {
+                refreshMemberList(e.target.value.trim());
+            });
+            refreshMemberList();
+
+            // 文件上传功能
+            const fileUploadArea = document.getElementById('dev-file-upload-area');
+            const fileInput = document.getElementById('dev-file-input');
+            const fileListEl = document.getElementById('dev-file-list');
+
+            // 点击/拖拽上传
+            fileUploadArea.addEventListener('click', () => fileInput.click());
+            fileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadArea.style.borderColor = '#a855f7';
+                fileUploadArea.style.backgroundColor = 'rgba(168, 85, 247, 0.05)';
+            });
+            fileUploadArea.addEventListener('dragleave', () => {
+                fileUploadArea.style.borderColor = '';
+                fileUploadArea.style.backgroundColor = '';
+            });
+            fileUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadArea.style.borderColor = '';
+                fileUploadArea.style.backgroundColor = '';
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    handleFiles(fileInput.files);
+                }
+            });
+
+            // 处理上传文件
+            function handleFiles(files) {
+                let uploadFiles = JSON.parse(localStorage.getItem('loveDevFiles')) || [];
+                Array.from(files).forEach(file => {
+                    // 简单格式校验
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'];
+                    if (!allowedTypes.includes(file.type)) {
+                        alert(`文件【${file.name}】格式不支持，仅允许JPG/PNG/GIF/MP4`);
+                        return;
+                    }
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert(`文件【${file.name}】超过50MB限制，无法上传`);
+                        return;
+                    }
+                    // 生成临时URL（实际项目需后端存储，此处本地模拟）
+                    const fileUrl = URL.createObjectURL(file);
+                    const fileInfo = {
+                        id: Date.now(),
+                        name: file.name,
+                        size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+                        type: file.type.split('/')[0],
+                        url: fileUrl,
+                        time: new Date().toLocaleString()
+                    };
+                    uploadFiles.unshift(fileInfo);
+                });
+                localStorage.setItem('loveDevFiles', JSON.stringify(uploadFiles));
+                refreshFileList();
+            }
+
+            // 刷新文件列表
+            function refreshFileList() {
+                const uploadFiles = JSON.parse(localStorage.getItem('loveDevFiles')) || [];
+                if (uploadFiles.length === 0) {
+                    fileListEl.innerHTML = `
+                        <div class="text-center text-gray-500 py-6">
+                            <i class="fas fa-file text-3xl mb-2"></i>
+                            <p>暂无上传文件</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                fileListEl.innerHTML = '';
+                uploadFiles.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 border border-gray-100 rounded-lg flex justify-between items-center';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-${file.type === 'image' ? 'image' : 'video'} text-love-purple text-xl"></i>
+                            <div>
+                                <p class="font-medium text-gray-800 truncate max-w-[200px]">${file.name}</p>
+                                <p class="text-xs text-gray-500">${file.size} · ${file.time}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="${file.url}" target="_blank" class="text-love-blue hover:underline text-sm">预览</a>
+                            <button class="text-red-500 hover:underline text-sm btn-click" data-id="${file.id}">删除</button>
+                        </div>
+                    `;
+                    fileListEl.appendChild(item);
+                });
+
+                // 删除文件事件
+                document.querySelectorAll('#dev-file-list .text-red-500').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const fileId = parseInt(e.target.dataset.id);
+                        let uploadFiles = JSON.parse(localStorage.getItem('loveDevFiles')) || [];
+                        uploadFiles = uploadFiles.filter(file => file.id !== fileId);
+                        localStorage.setItem('loveDevFiles', JSON.stringify(uploadFiles));
+                        refreshFileList();
+                    });
+                });
+            }
+            refreshFileList();
+
+            // 留言管理功能
+            const refreshBoardList = () => {
+                let boardList = JSON.parse(localStorage.getItem('loveBoardList')) || [];
+                const boardListEl = document.getElementById('dev-board-list');
+
+                if (boardList.length === 0) {
+                    boardListEl.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-comments text-3xl mb-2"></i>
+                            <p>全站暂无留言</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                boardListEl.innerHTML = '';
+                boardList.forEach((msg, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 border border-gray-100 rounded-lg mb-3';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="font-bold text-gray-800">${msg.username}</p>
+                            <p class="text-xs text-gray-500">${msg.time}</p>
+                        </div>
+                        <p class="text-gray-700 mb-2">${msg.content}</p>
+                        <button class="text-red-500 hover:underline text-sm btn-click" data-index="${index}">删除</button>
+                    `;
+                    boardListEl.appendChild(item);
+                });
+
+                // 删除留言事件
+                document.querySelectorAll('#dev-board-list .text-red-500').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        let boardList = JSON.parse(localStorage.getItem('loveBoardList')) || [];
+                        boardList.splice(index, 1);
+                        localStorage.setItem('loveBoardList', JSON.stringify(boardList));
+                        refreshBoardList();
+                    });
+                });
+            };
+
+            // 发布官方留言
+            document.getElementById('dev-board-publish').addEventListener('click', () => {
+                const content = document.getElementById('dev-board-content').value.trim();
+                if (!content) {
+                    alert('请输入留言内容');
+                    return;
+                }
+                let boardList = JSON.parse(localStorage.getItem('loveBoardList')) || [];
+                boardList.unshift({
+                    username: '官方公告',
+                    content,
+                    time: new Date().toLocaleString()
+                });
+                localStorage.setItem('loveBoardList', JSON.stringify(boardList));
+                document.getElementById('dev-board-content').value = '';
+                refreshBoardList();
+            });
+
+            // 清空全站留言
+            document.getElementById('dev-board-clear').addEventListener('click', () => {
+                if (confirm('确定要清空全站留言吗？此操作不可恢复')) {
+                    localStorage.removeItem('loveBoardList');
+                    refreshBoardList();
+                }
+            });
+
+            refreshBoardList();
+        }
+
+        // 用户中心初始化
+        function initUserCenter() {
+            // 渲染用户信息
+            document.getElementById('user-username').textContent = currentUser.username;
+            document.getElementById('user-realname').textContent = `真实姓名：${currentUser.realname}（永久不可修改）`;
+            document.getElementById('user-gender').textContent = currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '其他';
+            document.getElementById('user-code').textContent = currentUser.code;
+            document.getElementById('user-avatar').src = currentUser.avatar;
+            document.getElementById('user-intimacy').textContent = currentUser.intimacy || 0;
+
+            // 情侣状态渲染
+            if (currentUser.couple) {
+                document.getElementById('user-couple-status').textContent = `已配对：${currentUser.couple.username}`;
+                document.getElementById('user-intimacy-tip').textContent = `与${currentUser.couple.username}的亲密值`;
+            } else {
+                document.getElementById('user-couple-status').textContent = '未配对';
+                document.getElementById('user-intimacy-tip').textContent = '配对情侣后可积累亲密值';
+            }
+
+            // 渲染生活照
+            const photoListEl = document.getElementById('user-photo-list');
+            photoListEl.innerHTML = `
+                <div class="h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all" id="user-photo-add">
+                    <div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                        <i class="fas fa-plus text-xl"></i>
+                    </div>
+                </div>
+            `;
+            currentUser.photos = currentUser.photos || [];
+            currentUser.photos.slice(0, 3).forEach(photo => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all';
+                photoItem.innerHTML = `<img src="${photo}" alt="生活照" class="w-full h-full object-cover">`;
+                photoListEl.appendChild(photoItem);
+            });
+
+            // 生活照上传
+            const photoInput = document.getElementById('user-photo-input');
+            document.getElementById('user-photo-add').addEventListener('click', () => photoInput.click());
+            document.getElementById('user-photo-more').addEventListener('click', () => photoInput.click());
+            photoInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    Array.from(e.target.files).forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            const photoUrl = URL.createObjectURL(file);
+                            currentUser.photos.push(photoUrl);
+                        }
+                    });
+                    // 保存并刷新
+                    saveUserInfo();
+                    initUserCenter();
+                }
+            });
+
+            // 导航跳转
+            document.getElementById('user-find-btn').addEventListener('click', () => showPage('user-find-page'));
+            document.getElementById('user-edit-btn').addEventListener('click', () => showPage('user-edit-page'));
+            document.getElementById('user-private-btn').addEventListener('click', () => {
+                if (currentUser.couple) {
+                    showPage('user-private-page');
+                } else {
+                    alert('请先配对情侣，开启专属私密空间');
+                }
+            });
+            document.getElementById('user-setting-btn').addEventListener('click', () => showPage('user-setting-page'));
+            document.getElementById('user-logout-btn').addEventListener('click', () => {
+                currentUser = {};
+                showPage('login-page');
+            });
+
+            // 卡片跳转
+            document.getElementById('user-find-card').addEventListener('click', () => showPage('user-find-page'));
+            document.getElementById('user-home-card').addEventListener('click', () => showPage('user-home-page'));
+            document.getElementById('user-private-card').addEventListener('click', () => {
+                if (currentUser.couple) {
+                    showPage('user-private-page');
+                } else {
+                    alert('请先配对情侣，开启专属私密空间');
+                }
+            });
+            document.getElementById('user-dynamic-card').addEventListener('click', () => showPage('user-dynamic-page'));
+            document.getElementById('user-task-card').addEventListener('click', () => {
+                if (currentUser.couple) {
+                    showPage('user-task-page');
+                } else {
+                    alert('请先配对情侣，参与情侣任务');
+                }
+            });
+            document.getElementById('user-setting-card').addEventListener('click', () => showPage('user-setting-page'));
+
+            // 移动端导航
+            document.getElementById('user-home-mobile').addEventListener('click', () => showPage('user-center-page'));
+            document.getElementById('user-find-mobile').addEventListener('click', () => showPage('user-find-page'));
+            document.getElementById('user-private-mobile').addEventListener('click', () => {
+                if (currentUser.couple) {
+                    showPage('user-private-page');
+                } else {
+                    alert('请先配对情侣，开启专属私密空间');
+                }
+            });
+            document.getElementById('user-setting-mobile').addEventListener('click', () => showPage('user-setting-page'));
+        }
+
+        // 所有用户页面初始化
+        function initAllUserPage() {
+            // 编辑主页页面
+            initEditPage();
+            // 寻友配对页面
+            initFindPage();
+            // 私密空间页面
+            initPrivatePage();
+            // 个人主页页面
+            initHomePage();
+            // 动态广场页面
+            initDynamicPage();
+            // 情侣任务页面
+            initTaskPage();
+            // 系统设置页面
+            initSettingPage();
+        }
+
+        // 编辑主页初始化
+        function initEditPage() {
+            // 填充当前信息
+            document.getElementById('edit-avatar').src = currentUser.avatar;
+            document.getElementById('edit-username').value = currentUser.username;
+            document.getElementById('edit-bg').src = currentUser.bg || 'https://picsum.photos/1200/400?random=10';
+            document.getElementById('edit-signature').value = currentUser.signature || '';
+            document.getElementById('edit-signature-count').textContent = (currentUser.signature || '').length;
+
+            // 头像更换
+            const avatarInput = document.getElementById('edit-avatar-input');
+            document.getElementById('edit-avatar-btn').addEventListener('click', () => avatarInput.click());
+            document.getElementById('edit-avatar-box').addEventListener('click', () => avatarInput.click());
+            avatarInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    currentUser.avatar = URL.createObjectURL(e.target.files[0]);
+                    document.getElementById('edit-avatar').src = currentUser.avatar;
+                }
+            });
+
+            // 背景图更换
+            const bgInput = document.getElementById('edit-bg-input');
+            document.getElementById('edit-bg-btn').addEventListener('click', () => bgInput.click());
+            document.getElementById('edit-bg-box').addEventListener('click', () => bgInput.click());
+            bgInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    currentUser.bg = URL.createObjectURL(e.target.files[0]);
+                    document.getElementById('edit-bg').src = currentUser.bg;
+                }
+            });
+
+            // 个性签名计数
+            document.getElementById('edit-signature').addEventListener('input', (e) => {
+                const len = e.target.value.length;
+                document.getElementById('edit-signature-count').textContent = len;
+                if (len > 20) {
+                    e.target.value = e.target.value.slice(0, 20);
+                    document.getElementById('edit-signature-count').textContent = 20;
+                }
+            });
+
+            // 保存修改
+            document.getElementById('edit-save-btn').addEventListener('click', () => {
+                const username = document.getElementById('edit-username').value.trim();
+                const signature = document.getElementById('edit-signature').value.trim();
+
+                if (username.length < 2 || username.length > 10) {
+                    showTip('edit-username-tip', '网名长度需在2-10个字符之间');
+                    return;
+                }
+                hideTip('edit-username-tip');
+
+                currentUser.username = username;
+                currentUser.signature = signature;
+                saveUserInfo();
+                initUserCenter();
+                showPage('user-center-page');
+                alert('修改已保存');
+            });
+
+            // 返回
+            document.getElementById('edit-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 寻友配对初始化
+        function initFindPage() {
+            // 搜索表单提交
+            document.getElementById('find-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('find-username').value.trim();
+                const userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+                const ta = userList.find(u => u.username === username && u.username !== currentUser.username);
+
+                const noResult = document.getElementById('find-no-result');
+                const haveResult = document.getElementById('find-have-result');
+
+                if (!ta) {
+                    noResult.classList.remove('hidden');
+                    haveResult.classList.add('hidden');
+                    return;
+                }
+
+                noResult.classList.add('hidden');
+                haveResult.classList.remove('hidden');
+
+                // 渲染TA的信息
+                document.getElementById('ta-avatar').src = ta.avatar;
+                document.getElementById('ta-username').textContent = ta.username;
+                document.getElementById('ta-gender').textContent = `性别：${ta.gender === 'male' ? '男' : ta.gender === 'female' ? '女' : '其他'}`;
+                document.getElementById('ta-couple-status').textContent = ta.couple ? '情侣状态：已配对' : '情侣状态：未配对';
+
+                // 渲染TA的生活照
+                const taPhotoList = document.getElementById('ta-photo-list');
+                taPhotoList.innerHTML = '';
+                ta.photos = ta.photos || [];
+                ta.photos.slice(0, 2).forEach(photo => {
+                    const photoItem = document.createElement('div');
+                    photoItem.className = 'h-24 rounded-lg overflow-hidden';
+                    photoItem.innerHTML = `<img src="${photo}" alt="TA的生活照" class="w-full h-full object-cover">`;
+                    taPhotoList.appendChild(photoItem);
+                });
+
+                // 表白按钮事件
+                document.getElementById('send-confess-btn').addEventListener('click', () => {
+                    if (currentUser.couple) {
+                        alert('你已配对情侣，不可再次表白');
+                        return;
+                    }
+                    if (ta.couple) {
+                        alert('对方已配对情侣，无法发送表白申请');
+                        return;
+                    }
+                    if (confirm(`确定要向【${ta.username}】发送表白申请吗？`)) {
+                        // 存储表白信息（实际项目可加消息通知）
+                        ta.confess = ta.confess || [];
+                        ta.confess.push({
+                            from: currentUser.username,
+                            time: new Date().toLocaleString()
+                        });
+                        // 保存对方信息
+                        saveUserByUsername(ta);
+                        alert('表白申请已发送，等待对方回应');
+                    }
+                });
+            });
+
+            // 返回
+            document.getElementById('find-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 私密空间初始化
+        function initPrivatePage() {
+            if (!currentUser.couple) return;
+
+            // 渲染情侣信息
+            document.getElementById('private-my-avatar').src = currentUser.avatar;
+            document.getElementById('private-ta-avatar').src = currentUser.couple.avatar;
+            document.getElementById('private-my-name').textContent = currentUser.username;
+            document.getElementById('private-ta-name').textContent = currentUser.couple.username;
+            document.getElementById('private-sparkle-days').textContent = currentUser.sparkleDays || 0;
+            document.getElementById('private-intimacy').textContent = currentUser.intimacy || 0;
+
+            // 续火花
+            document.getElementById('private-renew-sparkle').addEventListener('click', () => {
+                const today = new Date().toLocaleDateString();
+                const lastSparkle = currentUser.lastSparkle;
+                if (lastSparkle === today) {
+                    alert('今日已续火花，明天再来吧～');
+                    return;
+                }
+                currentUser.sparkleDays = (currentUser.sparkleDays || 0) + 1;
+                currentUser.intimacy = (currentUser.intimacy || 0) + 5;
+                currentUser.lastSparkle = today;
+                // 同步情侣信息
+                const couple = JSON.parse(localStorage.getItem('loveUserList')).find(u => u.username === currentUser.couple.username);
+                couple.sparkleDays = currentUser.sparkleDays;
+                couple.intimacy = currentUser.intimacy;
+                couple.lastSparkle = today;
+                saveUserInfo();
+                saveUserByUsername(couple);
+                // 刷新页面
+                document.getElementById('private-sparkle-days').textContent = currentUser.sparkleDays;
+                document.getElementById('private-intimacy').textContent = currentUser.intimacy;
+                alert(`续火花成功！火花天数+1，亲密值+5`);
+            });
+
+            // 发送情侣留言
+            document.getElementById('private-msg-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const content = document.getElementById('private-msg-input').value.trim();
+                if (!content) return;
+
+                // 存储留言（实际项目可同步给情侣）
+                currentUser.privateMsg = currentUser.privateMsg || [];
+                currentUser.privateMsg.push({
+                    from: 'me',
+                    content,
+                    time: '刚刚'
+                });
+                saveUserInfo();
+
+                // 渲染留言
+                const msgList = document.getElementById('private-msg-list');
+                const msgItem = document.createElement('div');
+                msgItem.className = 'flex flex-col items-end mt-2';
+                msgItem.innerHTML = `
+                    <p class="text-xs text-gray-500 mb-1">我 · 刚刚</p>
+                    <p class="bg-love-pink/10 text-love-pink px-4 py-2 rounded-lg rounded-tr-none max-w-[80%]">${content}</p>
+                `;
+                msgList.appendChild(msgItem);
+                msgList.scrollTop = msgList.scrollHeight;
+                document.getElementById('private-msg-input').value = '';
+            });
+
+            // 完成情侣任务
+            document.querySelectorAll('#private-task-list button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = e.target.textContent;
+                    const addIntimacy = parseInt(text.match(/\+(\d+)/)[1]);
+                    currentUser.intimacy = (currentUser.intimacy || 0) + addIntimacy;
+                    // 同步情侣亲密值
+                    const couple = JSON.parse(localStorage.getItem('loveUserList')).find(u => u.username === currentUser.couple.username);
+                    couple.intimacy = currentUser.intimacy;
+                    saveUserInfo();
+                    saveUserByUsername(couple);
+                    // 刷新显示
+                    document.getElementById('private-intimacy').textContent = currentUser.intimacy;
+                    e.target.textContent = '已完成';
+                    e.target.classList.remove('bg-love-yellow/10', 'text-love-yellow');
+                    e.target.classList.add('bg-green-100', 'text-green-600');
+                    e.target.disabled = true;
+                    alert(`任务完成！亲密值+${addIntimacy}`);
+                });
+            });
+
+            // 返回
+            document.getElementById('private-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 个人主页初始化
+        function initHomePage() {
+            // 渲染主页信息
+            document.getElementById('home-avatar').src = currentUser.avatar;
+            document.getElementById('home-bg').src = currentUser.bg || 'https://picsum.photos/1200/400?random=10';
+            document.getElementById('home-username').textContent = currentUser.username;
+            document.getElementById('home-signature').textContent = currentUser.signature || '暂无个性签名';
+            document.getElementById('home-gender').textContent = currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '其他';
+            document.getElementById('home-couple').textContent = currentUser.couple ? '已配对' : '未配对';
+
+            // 渲染生活照
+            const homePhotoList = document.getElementById('home-photo-list');
+            homePhotoList.innerHTML = '';
+            currentUser.photos = currentUser.photos || [];
+            currentUser.photos.slice(0, 6).forEach(photo => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-all';
+                photoItem.innerHTML = `<img src="${photo}" alt="生活照" class="w-full h-full object-cover">`;
+                homePhotoList.appendChild(photoItem);
+            });
+
+            // 返回
+            document.getElementById('home-back-btn').addEventListener('click', () => showPage('user-center-page'));
+            // 分享
+            document.getElementById('home-share-btn').addEventListener('click', () => {
+                alert('分享功能已触发，实际项目可对接分享API');
+            });
+        }
+
+        // 动态广场初始化
+        function initDynamicPage() {
+            // 发布动态
+            document.getElementById('dynamic-publish-btn').addEventListener('click', () => {
+                alert('发布动态功能已触发，可在此处添加图片上传+文字编辑逻辑');
+            });
+
+            // 动态互动（点赞/评论/分享）
+            document.querySelectorAll('#dynamic-list button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const icon = e.target.querySelector('i');
+                    if (icon.classList.contains('fa-heart')) {
+                        btn.classList.toggle('text-love-pink');
+                        btn.classList.toggle('text-gray-500');
+                    } else if (icon.classList.contains('fa-comment')) {
+                        btn.classList.toggle('text-love-blue');
+                        btn.classList.toggle('text-gray-500');
+                    } else if (icon.classList.contains('fa-share-alt')) {
+                        btn.classList.toggle('text-love-cyan');
+                        btn.classList.toggle('text-gray-500');
+                    }
+                });
+            });
+
+            // 返回
+            document.getElementById('dynamic-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 情侣任务初始化
+        function initTaskPage() {
+            if (!currentUser.couple) return;
+
+            // 渲染任务数据
+            document.getElementById('task-today-complete').textContent = `${currentUser.completedTasks || 0}/5`;
+            document.getElementById('task-total-intimacy').textContent = currentUser.intimacy || 0;
+            document.getElementById('task-continue-days').textContent = currentUser.sparkleDays || 0;
+
+            // 完成日常任务
+            document.querySelectorAll('#task-daily-list button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const addIntimacy = parseInt(e.target.textContent.match(/\+(\d+)/)[1]);
+                    currentUser.intimacy = (currentUser.intimacy || 0) + addIntimacy;
+                    currentUser.completedTasks = (currentUser.completedTasks || 0) + 1;
+                    // 同步情侣数据
+                    const couple = JSON.parse(localStorage.getItem('loveUserList')).find(u => u.username === currentUser.couple.username);
+                    couple.intimacy = currentUser.intimacy;
+                    saveUserInfo();
+                    saveUserByUsername(couple);
+                    // 刷新显示
+                    document.getElementById('task-today-complete').textContent = `${currentUser.completedTasks}/5`;
+                    document.getElementById('task-total-intimacy').textContent = currentUser.intimacy;
+                    e.target.textContent = '已完成';
+                    e.target.classList.remove('bg-love-yellow', 'text-white');
+                    e.target.classList.add('bg-green-100', 'text-green-600');
+                    e.target.disabled = true;
+                    alert(`任务完成！亲密值+${addIntimacy}`);
+                });
+            });
+
+            // 完成每周任务
+            document.querySelectorAll('#task-weekly-list button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = e.target.textContent;
+                    const addIntimacy = parseInt(text.match(/\+(\d+)/)[1]);
+                    const taskName = e.target.closest('div').querySelector('p').textContent;
+                    
+                    // 简单任务进度校验
+                    if (taskName.includes('连续7天续火花') && (currentUser.sparkleDays || 0) < 7) {
+                        alert('未达成任务条件（需连续7天续火花）');
+                        return;
+                    }
+                    if (taskName.includes('累计亲密值达到520') && (currentUser.intimacy || 0) < 520) {
+                        alert('未达成任务条件（需累计亲密值520）');
+                        return;
+                    }
+
+                    currentUser.intimacy = (currentUser.intimacy || 0) + addIntimacy;
+                    const couple = JSON.parse(localStorage.getItem('loveUserList')).find(u => u.username === currentUser.couple.username);
+                    couple.intimacy = currentUser.intimacy;
+                    saveUserInfo();
+                    saveUserByUsername(couple);
+                    // 刷新显示
+                    document.getElementById('task-total-intimacy').textContent = currentUser.intimacy;
+                    e.target.textContent = '已完成';
+                    e.target.classList.remove('bg-love-red', 'text-white');
+                    e.target.classList.add('bg-green-100', 'text-green-600');
+                    e.target.disabled = true;
+                    alert(`挑战完成！亲密值+${addIntimacy}`);
+                });
+            });
+
+            // 领取奖励
+            document.querySelectorAll('#task-weekly-list + div button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = e.target.textContent;
+                    if (text.includes('亲密值≥100')) {
+                        if ((currentUser.intimacy || 0) >= 100) {
+                            currentUser.intimacy += 52;
+                            saveUserInfo();
+                            document.getElementById('task-total-intimacy').textContent = currentUser.intimacy;
+                            e.target.textContent = '已领取';
+                            e.target.disabled = true;
+                            alert('奖励领取成功！亲密值+52');
+                        } else {
+                            alert('未满足领取条件（亲密值≥100）');
+                        }
+                    } else if (text.includes('连续打卡7天')) {
+                        if ((currentUser.sparkleDays || 0) >= 7) {
+                            e.target.textContent = '已领取';
+                            e.target.disabled = true;
+                            alert('奖励领取成功！获得专属情侣头像框');
+                        } else {
+                            alert('未满足领取条件（连续打卡7天）');
+                        }
+                    } else if (text.includes('完成5个日常任务')) {
+                        if ((currentUser.completedTasks || 0) >= 5) {
+                            e.target.textContent = '已领取';
+                            e.target.disabled = true;
+                            alert('奖励领取成功！获得私密空间背景图');
+                        } else {
+                            alert('未满足领取条件（完成5个日常任务）');
+                        }
+                    }
+                });
+            });
+
+            // 返回
+            document.getElementById('task-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 系统设置初始化
+        function initSettingPage() {
+            // 隐私设置切换
+            document.getElementById('setting-hide-couple').addEventListener('change', (e) => {
+                currentUser.hideCouple = e.target.checked;
+                saveUserInfo();
+            });
+            document.getElementById('setting-hide-photo').addEventListener('change', (e) => {
+                currentUser.hidePhoto = e.target.checked;
+                saveUserInfo();
+            });
+            document.getElementById('setting-only-friend').addEventListener('change', (e) => {
+                currentUser.onlyFriend = e.target.checked;
+                saveUserInfo();
+            });
+
+            // 通用设置切换
+            document.getElementById('setting-notice').addEventListener('change', (e) => {
+                currentUser.notice = e.target.checked;
+                saveUserInfo();
+            });
+            document.getElementById('setting-sound').addEventListener('change', (e) => {
+                currentUser.sound = e.target.checked;
+                saveUserInfo();
+            });
+            document.getElementById('setting-night').addEventListener('change', (e) => {
+                currentUser.nightMode = e.target.checked;
+                document.body.classList.toggle('bg-gray-900', e.target.checked);
+                document.body.classList.toggle('text-white', e.target.checked);
+                document.body.classList.toggle('bg-gray-50', !e.target.checked);
+                document.body.classList.toggle('text-gray-800', !e.target.checked);
+                saveUserInfo();
+            });
+
+            // 清除访客记录
+            document.querySelector('#setting-only-friend').parentNode.parentNode.nextElementSibling.querySelector('button').addEventListener('click', () => {
+                currentUser.visitor = [];
+                saveUserInfo();
+                alert('访客记录已清除');
+            });
+
+            // 清除缓存
+            document.querySelector('#setting-night').parentNode.parentNode.nextElementSibling.querySelector('button').addEventListener('click', () => {
+                localStorage.removeItem('loveTempFiles');
+                alert('缓存已清除');
+            });
+
+            // 检查更新
+            document.querySelector('#setting-page .bg-love-cyan\\/10').addEventListener('click', () => {
+                alert('当前已是最新版本（V1.0.0）');
+            });
+
+            // 退出登录
+            document.getElementById('setting-logout-btn').addEventListener('click', () => {
+                currentUser = {};
+                showPage('login-page');
+            });
+
+            // 返回
+            document.getElementById('setting-back-btn').addEventListener('click', () => showPage('user-center-page'));
+        }
+
+        // 保存用户信息到localStorage
+        function saveUserInfo() {
+            let userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+            const index = userList.findIndex(u => u.username === currentUser.username);
+            if (index !== -1) {
+                userList[index] = currentUser;
+                localStorage.setItem('loveUserList', JSON.stringify(userList));
+            }
+        }
+
+        // 根据用户名保存用户信息
+        function saveUserByUsername(user) {
+            let userList = JSON.parse(localStorage.getItem('loveUserList')) || [];
+            const index = userList.findIndex(u => u.username === user.username);
+            if (index !== -1) {
+                userList[index] = user;
+                localStorage.setItem('loveUserList', JSON.stringify(userList));
+            }
+        }
+
+        // 页面加载完成初始化
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
